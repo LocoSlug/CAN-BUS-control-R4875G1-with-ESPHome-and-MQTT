@@ -1,0 +1,246 @@
+globals:
+
+  - id: g_mqtt_failures          # counts consecutive disconnects
+    type: int
+    restore_value: no
+    initial_value: '0'
+
+  - id: g_broker
+    type: std::string
+    restore_value: true
+    initial_value: "\"\""
+
+  - id: g_user
+    type: std::string
+    restore_value: true
+    initial_value: "\"\""
+
+  - id: g_pass
+    type: std::string
+    restore_value: true
+    initial_value: "\"\""
+
+  - id: g_port
+    type: int
+    restore_value: true
+    initial_value: '1883'
+
+  - id: amp_scaling_factor
+    type: float
+    restore_value: true
+    initial_value: "19.6923"
+    
+  - id: voltage_scaling_factor
+    type: int
+    initial_value: "1024"
+    restore_value: true
+
+  - id: max_amp_limit
+    type: float
+    initial_value: "75"
+    restore_value: true
+
+  - id: max_current_found_board_1
+    type: bool
+    initial_value: "false"
+
+  - id: search_counter_board_1
+    type: int
+    restore_value: no
+    initial_value: "0"
+
+  - id: data_found_board_1
+    type: bool
+    initial_value: "false"
+
+  - id: daily_schedule_disabled
+    type: bool
+    restore_value: no
+    initial_value: "false"
+
+  # Stores the running total of Watt-hours
+  - id: consumed_wh
+    type: float
+    restore_value: no
+    initial_value: "0.0"
+
+  - id: frame_counter_bp1
+    type: int
+    restore_value: no
+    initial_value: '0'
+
+  - id: frame_counter_msg_start1
+    type: int
+    restore_value: no
+    initial_value: '0'
+
+  - id: search_attempts
+    type: int
+    restore_value: no
+    initial_value: '0'
+
+  - id: board_properties
+    type: std::string
+    initial_value: '""'
+
+  - id: board_properties_complete
+    type: bool
+    initial_value: "false"
+
+  - id: barcode_found
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+
+  - id: last_staged_current
+    type: float
+    restore_value: no
+    initial_value: "40.0"
+
+
+  - id: stage1_active
+    type: bool
+    restore_value: no
+    initial_value: "false"
+
+  - id: stage2_active
+    type: bool
+    restore_value: no
+    initial_value: "false"
+
+  - id: stage3_active
+    type: bool
+    restore_value: no
+    initial_value: "false"
+
+  - id: stage4_active
+    type: bool
+    restore_value: no
+    initial_value: "false"
+
+  - id: pre_stage_amp
+    type: float
+    restore_value: no
+    initial_value: "0.0"
+
+  - id: prev_any_stage_active
+    type: bool
+    restore_value: no
+    initial_value: "false"
+
+  # How many seconds Stage 4 has been active so far (this session).
+  - id: stage4_elapsed_s
+    type: int
+    restore_value: no
+    initial_value: "0"
+
+  # If we have forcibly turned Stage 4 off once the time is up,
+  # we won't re-activate it again in the same voltage condition.
+  - id: stage4_forced_off
+    type: bool
+    restore_value: no
+    initial_value: "false"
+
+  # Custom Stage 1
+  - id: custom_stage1_threshold
+    type: float
+    restore_value: no
+    initial_value: "0.0"
+
+  - id: custom_stage1_current
+    type: float
+    restore_value: no
+    initial_value: "0.0"
+
+  # Custom Stage 2
+  - id: custom_stage2_threshold
+    type: float
+    restore_value: no
+    initial_value: "0.0"
+
+  - id: custom_stage2_current
+    type: float
+    restore_value: no
+    initial_value: "0.0"
+
+  # Custom Stage 3
+  - id: custom_stage3_threshold
+    type: float
+    restore_value: no
+    initial_value: "0.0"
+
+  - id: custom_stage3_current
+    type: float
+    restore_value: no
+    initial_value: "0.0"
+
+  # Custom Stage 4
+  - id: custom_stage4_threshold
+    type: float
+    restore_value: no
+    initial_value: "0.0"
+
+  - id: custom_stage4_current
+    type: float
+    restore_value: no
+    initial_value: "0.0"
+
+  # 0-7 = T1,C1,T2,C2,T3,C3,T4,C4
+  - id: custom_stage
+    type: float[9]
+    restore_value: yes
+    initial_value: '{0,0,0,0,0,0,0,0,0}'
+
+  # ------------------ NEW CLOCK GLOBALS -------------------
+  - id: current_hour       # The current hour (0–23)
+    type: int
+    restore_value: no
+    initial_value: '0'
+  - id: current_minute     # The current minute (0–59)
+    type: int
+    restore_value: no
+    initial_value: '0'
+#  - id: on_hour            # Hour when device will automatically switch ON
+#    type: int
+#    restore_value: no
+#    initial_value: '0'
+#  - id: on_minute          # Minute when device will automatically switch ON
+#    type: int
+#    restore_value: no
+#    initial_value: '0'
+#  - id: off_hour           # Hour when device will automatically switch OFF
+#    type: int
+#    restore_value: no
+#    initial_value: '-1'
+#  - id: off_minute         # Minute when device will automatically switch OFF
+#    type: int
+#    restore_value: no
+#    initial_value: '-1'
+
+  - id: on_time_countdown
+    type: int
+    restore_value: no
+    initial_value: '0'
+
+  - id: off_time_countdown
+    type: int
+    restore_value: no
+    initial_value: '0'
+
+  - id: g_last_on_delta
+    type: int
+    restore_value: no
+    initial_value: '-1'
+  - id: g_last_off_delta
+    type: int
+    restore_value: no
+    initial_value: '-1'
+
+  - id: g_schedule_disabled_prev
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+  - id: g_show_schedule_update_log
+    type: bool
+    restore_value: no
+    initial_value: 'true'

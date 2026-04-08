@@ -1,0 +1,111 @@
+script:
+  # ───────────────────────── helper script (debounced connect) ──────────────
+  - id: mqtt_reconnect
+    mode: restart
+    then:
+      # Debounce: delay 2 s so multiple edits don’t trigger back-to-back connects
+      - delay: 2s
+
+      # Check all fields are present and sensible
+      - lambda: |-
+          if (id(g_broker).empty() || id(g_port) <= 0) {
+            ESP_LOGW("config", "MQTT broker IP missing – aborting connect");
+            return;
+          }
+
+      # Print the final parameters
+      - logger.log:
+          tag: "config"
+          level: INFO
+          format: "Connecting to %s:%d as %s (pw len %d)…"
+          args: [ 'id(g_broker).c_str()', 'id(g_port)', 'id(g_user).c_str()', 'id(g_pass).size()' ]
+
+      # Stop current session (if any)
+      - mqtt.disable:
+      - wait_until:
+          condition:
+            not: mqtt.connected
+          timeout: 2s
+      - delay: 300ms
+
+      # Apply new parameters
+      - lambda: |-
+          id(mqtt_client).set_broker_address(id(g_broker));
+          id(mqtt_client).set_broker_port(id(g_port));
+
+          if (id(g_user).empty() && id(g_pass).empty()) {
+            id(mqtt_client).set_username("");
+            id(mqtt_client).set_password("");
+            ESP_LOGI("config", "MQTT: connecting anonymously");
+
+          } else if (!id(g_user).empty() && !id(g_pass).empty()) {
+            id(mqtt_client).set_username(id(g_user));
+            id(mqtt_client).set_password(id(g_pass));
+            ESP_LOGI("config", "MQTT: connecting as %s (pw len %d)",
+                     id(g_user).c_str(), id(g_pass).size());
+
+          } else {
+            ESP_LOGW("config", "MQTT: username or password missing – aborting connect");
+            return;
+          }
+
+      # Kick it off
+      - mqtt.enable:
+
+
+
+  - id: setup_sequence
+    mode: single
+    then:
+      # Detect Data Board-1
+      - script.execute: detect_data_board_1
+      - delay: 1s
+
+  - id: detect_data_board_1
+    then:
+      - lambda: |-
+          id(max_current_found_board_1) = false; // Reset the flag before starting
+          id(search_counter_board_1) = 0;        // Initialize a fail-safe counter
+      - while:
+          condition:
+            lambda: |-
+              // Continue while board_1 not found and counter < 10
+              return !id(max_current_found_board_1) && id(search_counter_board_1) < 10;
+          then:
+            - canbus.send:
+                can_id: 0x108150fe
+                use_extended_id: true
+                data: [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+            - delay: 1s
+            - canbus.send:
+                can_id: 0x1081D2FE
+                use_extended_id: true
+                data: [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+            - delay: 1s
+            - lambda: |-
+                id(search_counter_board_1) += 1; // Increment the fail-safe counter
+      - delay: 1s
+      - lambda: |-
+          if (id(search_counter_board_1) >= 10) {
+            ESP_LOGW("canbus", "Fail-safe triggered: Loop stopped after 10 attempts.");
+          }
+
+  - id: soft_charge_reset
+    mode: restart
+    then:
+      - lambda: |-
+          ESP_LOGI("SOFT_CHARGE", "Switch toggled → resetting staged‑charge state");
+          id(stage1_active)        = false;
+          id(stage2_active)        = false;
+          id(stage3_active)        = false;
+          id(stage4_active)        = false;
+          id(stage4_forced_off)    = false;
+          id(stage4_elapsed_s)     = 0;
+          id(prev_any_stage_active)= false;
+          // Align currents with user slider so no stale value is sent
+          id(last_staged_current)  = id(can_amp_input).state;
+          id(pre_stage_amp)        = id(can_amp_input).state;
+
+# ----------------------------------------------------------
+#                      CANBUS
+# ----------------------------------------------------------
