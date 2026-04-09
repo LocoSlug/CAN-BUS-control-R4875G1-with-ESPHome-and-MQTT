@@ -1,6 +1,7 @@
 esphome:
-  name: "r48xx-off-grid"
-  friendly_name: "R48xx-off-grid"
+  name: r4875g-waveshare1
+  friendly_name: R4875G-Waveshare1
+  hostname: 'r4875g-waveshare1' # Name of your ESPHome node registered on the IP network (DNS name, must be unique) and prefix added in front of the `entity id`.
 
   on_boot:
 
@@ -40,7 +41,6 @@ esphome:
                   level: INFO
                   format: "MQTT credentials incomplete – skipping auto-connect"
       
-
 
 
 packages:
