@@ -1,3 +1,4 @@
+# ────────────────────── MQTT skeleton (always disabled at boot) ─────────────
 mqtt:
   id: mqtt_client
   broker: ""                  # placeholder – updated at run-time
@@ -146,5 +147,3 @@ text:
                          x.c_str(), id(g_port));
               }
             }
-
-# ─────────────────────────── globals that survive reboot ────────────────────

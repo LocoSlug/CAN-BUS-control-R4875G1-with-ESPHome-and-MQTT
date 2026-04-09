@@ -1,5 +1,5 @@
 esp32:
-  board: esp32dev
+  board: esp32-s3-devkitc-1
   framework:
     type: arduino
 
@@ -23,12 +23,13 @@ captive_portal:
 
 ota:
   - platform: esphome
-
+    password: "383b8b069223b0fdf6e47ef973db6d7b"
 
 web_server:
 #  js_include: "./www/www.js"
 #  js_url: ""
   version: 3
 
-
-# ────────────────────── MQTT skeleton (always disabled at boot) ─────────────
+api:
+  encryption:
+    key: "22PogL97c6segT35KRdmSEdbVnZvcWIdToGpzH/23ZE="

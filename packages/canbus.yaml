@@ -1,7 +1,7 @@
 canbus:
   - platform: esp32_can
-    tx_pin: GPIO19
-    rx_pin: GPIO21
+    tx_pin: GPIO1
+    rx_pin: GPIO2
     can_id: 0xE5F32E5
     bit_rate: 125kbps
     use_extended_id: True
@@ -224,7 +224,5 @@ canbus:
                 ESP_LOGI("board_properties", "Not all keys found. Will continue processing.");
               }
 
-# ----------------------------------------------------------
-#           TEXT SENSOR & NUMERIC TEMPLATE SENSORS
-# ----------------------------------------------------------
+
 # ─────────────────────────── MQTT status indicator ──────────────────────────

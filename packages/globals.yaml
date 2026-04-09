@@ -1,3 +1,4 @@
+# ─────────────────────────── globals that survive reboot ────────────────────
 globals:
 
   - id: g_mqtt_failures          # counts consecutive disconnects

@@ -44,11 +44,15 @@ esphome:
 
 
 packages:
-  - packages/core.yaml
-  - packages/mqtt.yaml
-  - packages/globals.yaml
-  - packages/scripts.yaml
-  - packages/canbus.yaml
-  - packages/sensors.yaml
-  - packages/controls.yaml
-  - packages/intervals.yaml
+  - url: https://github.com/LocoSlug/CAN-BUS-control-R4875G1-with-ESPHome-and-MQTT
+    ref: mqttreceive
+    refresh: 0s
+    files:
+      - path: 'packages/core.yaml'
+      - path: 'packages/mqtt.yaml'
+      - path: 'packages/globals.yaml'
+      - path: 'packages/scripts.yaml'
+      - path: 'packages/canbus.yaml'
+      - path: 'packages/sensors.yaml'
+      - path: 'packages/controls.yaml'
+      - path: 'packages/intervals.yaml'
