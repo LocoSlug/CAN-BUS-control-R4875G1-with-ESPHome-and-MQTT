@@ -245,3 +245,13 @@ globals:
     type: bool
     restore_value: no
     initial_value: 'true'
+
+  - id: huawei_last_mqtt_time
+    type: float
+    restore_value: false
+    initial_value: '0.0'
+
+  - id: huawei_watchdog_disabled
+    type: bool
+    restore_value: true
+    initial_value: 'false'
