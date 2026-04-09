@@ -296,3 +296,19 @@ interval:
                         frame[6] = (scaled >> 8) & 0xFF;  // MSB
                         frame[7] =  scaled       & 0xFF;  // LSB
                         return frame;
+
+  # === NEW: Watchdog - force current to 0 if no MQTT for 15 seconds ===
+  - interval: 1s
+    then:
+      - lambda: |-
+          if (id(huawei_watchdog_disable).state) return;   # user disabled safety
+
+          float now = millis() / 1000.0;
+          float last = id(huawei_last_mqtt_time).state;
+          if (last == 0.0) return;   # no message received yet
+
+          if ((now - last) > 15.0) {
+            ESP_LOGW("huawei_watchdog", "No MQTT update from main YamBMS for >15s → forcing current to 0");
+            id(can_amp_input).set_value(0.0);   # this will be picked up by your existing control loop
+          }
+

@@ -10,6 +10,17 @@ switch:
     turn_off_action:
       - script.execute: soft_charge_reset
 
+switch:
+  - platform: template
+    name: "Disable 15s MQTT Safety Shutdown"
+    id: huawei_watchdog_disable
+    icon: "mdi:shield-off"
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    turn_on_action:
+      - logger.log: "Huawei 15s safety shutdown DISABLED (manual mode allowed)"
+    turn_off_action:
+      - logger.log: "Huawei 15s safety shutdown ENABLED"
 
 number:
 
