@@ -1,10 +1,12 @@
 # ────────────────────── MQTT skeleton (always disabled at boot) ─────────────
+# ─────────────────────────── MQTT status indicator ──────────────────────────
 mqtt:
   id: mqtt_client
   broker: ""                  # placeholder – updated at run-time
   enable_on_boot: false
   reboot_timeout: 0s          # never auto-reboot; we handle errors ourselves
-
+  discovery: ${mqtt_discovery}
+  
   # ────────────── MQTT connected ──────────────
   on_connect:
     then:
@@ -69,28 +71,20 @@ mqtt:
             - mqtt.enable:
 
   on_message:
-    # === NEW: Receive per-unit values from Main YamBMS Node 1 ===
     - topic: "yambms/main/huawei_per_unit_voltage"
       then:
         - number.set:
             id: can_voltage_input
             value: !lambda "return atof(x.c_str());"
-
-    - topic: "yambms/main/huawei_per_unit_current"
-      then:
-        - number.set:
-            id: can_amp_input
-            value: !lambda "return atof(x.c_str());"
-
-    # Optional: also update last received time for watchdog
-    - topic: "yambms/main/huawei_per_unit_voltage"
-      then:
         - globals.set:
             id: huawei_last_mqtt_time
             value: !lambda "return millis() / 1000.0;"
 
     - topic: "yambms/main/huawei_per_unit_current"
       then:
+        - number.set:
+            id: can_amp_input
+            value: !lambda "return atof(x.c_str());"
         - globals.set:
             id: huawei_last_mqtt_time
             value: !lambda "return millis() / 1000.0;"

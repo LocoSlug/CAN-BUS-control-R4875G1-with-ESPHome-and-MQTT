@@ -109,6 +109,4 @@ script:
           id(last_staged_current)  = id(can_amp_input).state;
           id(pre_stage_amp)        = id(can_amp_input).state;
 
-# ----------------------------------------------------------
-#                      CANBUS
-# ----------------------------------------------------------
+
