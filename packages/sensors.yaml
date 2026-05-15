@@ -1,0 +1,249 @@
+# ─────────────────────────── MQTT status indicator ──────────────────────────
+text_sensor:
+
+  - platform: template
+    id: ts_mqtt_status               # <-- this ID is what automations refer to
+    name: "MQTT Status"
+    icon: mdi:lan
+    entity_category: diagnostic
+    # No lambda or update-interval needed – we’ll set the text from automations
+
+  # Power state from your existing code
+  - platform: template
+    id: power_state_sensor1
+    name: "003 Power State"
+    icon: "mdi:information-outline"
+
+  - platform: template
+    name: "Info: Board Type"
+    id: board_type_sensor_1
+    icon: "mdi:information-outline"
+
+  - platform: template
+    name: "Info: Barcode"
+    id: barcode_sensor_1
+    icon: "mdi:information-outline"
+
+  - platform: template
+    name: "Info: Item Number"
+    id: item_no_sensor_1
+    icon: "mdi:information-outline"
+
+  - platform: template
+    name: "Info: Description"
+    id: description_sensor_1
+    icon: "mdi:information-outline"
+
+  - platform: template
+    name: "Info: Manufacturing Date"
+    id: manufactured_sensor_1
+    icon: "mdi:information-outline"
+
+  # ------------------ NEW LOCAL TIME TEXT SENSOR ------------------
+  - platform: template
+    name: "Local Time (Off-Grid)"
+    id: local_time_display
+    update_interval: 15s
+    icon: "mdi:clock"
+    lambda: |-
+      // Build a string like "HH:MM"
+      char buff[6];
+      sprintf(buff, "%02d:%02d", id(current_hour), id(current_minute));
+      return std::string(buff);
+
+  - platform: template
+    name: "Minutes Until Next On"
+    id: next_on_text
+    update_interval: 15s
+    icon: "mdi:timer-sand"
+    lambda: |-
+      if (id(daily_schedule_disabled)) {
+        // Return a std::string rather than a raw C string
+        return std::string("Disabled");
+      } else {
+        char buff[16];
+        sprintf(buff, "%d min", id(on_time_countdown));
+        return std::string(buff);
+      }
+
+sensor:
+  - platform: template
+    name: "19 Scaling Factor"
+    id: sf_value
+    accuracy_decimals: 4
+    icon: "mdi:information-outline"
+    update_interval: never    
+
+  - platform: template
+    name: "Info: Max Current Capability"
+    id: max_current_sensor
+    unit_of_measurement: "A"
+    icon: "mdi:information-outline"
+
+  - platform: template
+    name: "Amp Scaling Factor"
+    lambda: |-
+      return id(amp_scaling_factor);
+    update_interval: 10s
+    internal: true
+    icon: "mdi:information-outline"
+
+  - platform: template
+    name: "06a Output DC Current alt"
+    id: alt_amp_sensor
+    unit_of_measurement: "A"
+    accuracy_decimals: 3
+    filters:
+      - lambda: |-
+          return x / id(amp_scaling_factor);
+    icon: "mdi:current-dc"
+
+  - platform: template
+    name: "01 Input AC Power"
+    id: ac_power_in_sensor
+    unit_of_measurement: "W"
+    state_class: "measurement"
+    accuracy_decimals: 3
+    filters:
+      - lambda: |-
+          return x / id(voltage_scaling_factor);
+    icon: "mdi:flash"
+
+  - platform: template
+    name: "05 Output DC Power"
+    id: dc_power_out_sensor
+    unit_of_measurement: "W"
+    state_class: "measurement"
+    accuracy_decimals: 3
+    filters:
+      - lambda: |-
+          return x / id(voltage_scaling_factor);
+    icon: "mdi:flash"
+
+  - platform: template
+    name: "02 Input Grid AC Frequency"
+    id: grid_frequency_sensor
+    unit_of_measurement: "Hz"
+    state_class: "measurement"
+    accuracy_decimals: 3
+    filters:
+      - lambda: |-
+          return x / id(voltage_scaling_factor);
+    icon: "mdi:transmission-tower-import"
+
+  - platform: template
+    name: "03 Input AC Current"
+    id: input_current_sensor
+    unit_of_measurement: "A"
+    state_class: "measurement"
+    accuracy_decimals: 3
+    filters:
+      - lambda: |-
+          return x / id(voltage_scaling_factor);
+    icon: "mdi:current-ac"
+
+  - platform: template
+    name: "07 Output DC Voltage"
+    id: output_voltage_sensor
+    unit_of_measurement: "V"
+    state_class: "measurement"
+    accuracy_decimals: 3
+    filters:
+      - lambda: |-
+          return x / id(voltage_scaling_factor);
+    icon: "mdi:current-dc"
+
+  - platform: template
+    name: "Info: Operating Hours"
+    id: operating_hours
+    unit_of_measurement: "h"
+    state_class: "measurement"
+    accuracy_decimals: 0
+    filters:
+      - lambda: |-
+          return x;
+    icon: "mdi:information-outline"
+
+  - platform: template
+    name: "04 Input AC Grid Voltage"
+    id: input_grid_voltage_sensor
+    unit_of_measurement: "V"
+    state_class: "measurement"
+    accuracy_decimals: 3
+    filters:
+      - lambda: |-
+          return x / id(voltage_scaling_factor);
+    icon: "mdi:sine-wave"
+
+  - platform: template
+    name: "08 Output Temperature"
+    id: output_temperature_sensor
+    unit_of_measurement: "°C"
+    state_class: "measurement"
+    accuracy_decimals: 1
+    filters:
+      - lambda: |-
+          return x / id(voltage_scaling_factor);
+    icon: "mdi:thermometer"
+
+  - platform: template
+    name: "08a Input Temperature"
+    id: input_temperature_sensor
+    unit_of_measurement: "°C"
+    accuracy_decimals: 1
+    update_interval: 3s
+    filters:
+      - lambda: |-
+          return x / id(voltage_scaling_factor);  
+    icon: "mdi:thermometer"
+
+  - platform: template
+    name: "06 Output DC Current"
+    id: output_current_sensor
+    unit_of_measurement: "A"
+    state_class: "measurement"
+    accuracy_decimals: 3
+    filters:
+      - lambda: |-
+          return x / id(voltage_scaling_factor);
+    icon: "mdi:current-dc"
+
+  - platform: template
+    name: "09 Max Output DC Current"
+    id: set_max_output_current_sensor
+    unit_of_measurement: "A"
+    state_class: "measurement"
+    accuracy_decimals: 3
+    filters:
+      - lambda: |-
+          return x / id(amp_scaling_factor);
+    icon: "mdi:current-ac"  
+
+  - platform: template
+    name: "Minutes Until Next Off"
+    id: next_off_sensor
+    unit_of_measurement: "min"
+    accuracy_decimals: 0
+    lambda: |-
+      return id(off_time_countdown);
+    update_interval: 15s
+    icon: "mdi:timer-sand"
+
+  # Displays the accumulated Wh in the UI
+  - platform: template
+    name: "Wh Meter Consumed Wh"
+    id: consumed_wh_sensor
+    unit_of_measurement: "Wh"
+    icon: "mdi:transmission-tower-import"
+    accuracy_decimals: 3
+    lambda: |-
+      // Just return the global
+      return id(consumed_wh);
+    update_interval: 30s
+
+  - platform: template
+    name: "FAN RPM"
+    id: rpm_sensor
+    unit_of_measurement: "RPM"
+    accuracy_decimals: 0
+    icon: "mdi:fan"

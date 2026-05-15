@@ -1,0 +1,227 @@
+button:
+
+  # 1️⃣ built-in restart button (hidden from the UI)
+  - platform: restart          # <— this is provided by ESPHome itself
+    id: sys_restart
+    name: "Restart node"
+    internal: true             # keeps it out of the web UI / HA unless you want it
+    
+
+  # 2️⃣ user-facing "apply MQTT" button
+  - platform: template
+    id: b_apply_mqtt
+    name: "MQTT Apply settings & reboot"
+    icon: "mdi:connection"
+    on_press:
+      - script.execute: mqtt_reconnect
+      - delay: 1s
+      - logger.log:
+          tag: "config"
+          level: INFO
+          format: "Rebooting to lock-in new MQTT settings… wait 10 seconds and then reload the page please"
+      - button.press: sys_restart   # ← press the hidden restart button
+
+  - platform: template
+    name: "001 CAN ON Button"
+    icon: "mdi:power"
+    id: can_on_button
+    on_press:
+      then:
+        - lambda: |-
+            ESP_LOGI("custom", "CAN ON Button pressed => sending ON message...");
+        - canbus.send:
+            use_extended_id: true
+            can_id: 0x108080FE
+            data: [0x01, 0x32, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+
+  - platform: template
+    name: "002 CAN OFF Button"
+    icon: "mdi:power"
+    id: can_off_button
+    on_press:
+      then:
+        - lambda: |-
+            ESP_LOGI("custom", "CAN OFF Button pressed => sending OFF message...");
+        - canbus.send:
+            use_extended_id: true
+            can_id: 0x108080FE
+            data: [0x01, 0x32, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00]
+
+
+  - platform: template
+    name: "18 SETUP this Charger:"
+    icon: "mdi:magnify-scan"
+    on_press:
+      then:
+        - script.execute: setup_sequence
+
+  # Reset the Wh counter back to 0
+  - platform: template
+    name: "Wh Meter RESET"
+    icon: "mdi:play"
+    on_press:
+      then:
+        - lambda: |-
+            ESP_LOGI("WH_RESET", "Resetting Wh meter to 0");
+            id(consumed_wh) = 0.0;
+
+# Define a button component for setting the fan to full speed
+  - platform: template
+    name: "Fan Full Speed Button"
+    icon: "mdi:fan"
+    on_press:
+      then:
+        - canbus.send:
+            use_extended_id: true
+            can_id: 0x108080FE
+            data: [0x01, 0x34, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00]
+
+# Define a button component for setting the fan to auto mode
+  - platform: template
+    name: "Fan Auto Mode Button"
+    icon: "mdi:fan"
+    on_press:
+      then:
+        - canbus.send:
+            use_extended_id: true
+            can_id: 0x108080FE
+            data: [0x01, 0x34, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+
+  - platform: template
+    name: "Soft Charge 16s LFP defaults"
+    id: restart_staged_charge_button
+    icon: "mdi:upload"
+    on_press:
+      then:
+        - lambda: |-
+            // === 16s LFP "Preset" Defaults ===
+            // Stage1
+            id(stage1_threshold).publish_state(55.2);
+            id(stage1_current).publish_state(30);
+
+            // Stage2
+            id(stage2_threshold).publish_state(55.3);
+            id(stage2_current).publish_state(10);
+
+            // Stage3
+            id(stage3_threshold).publish_state(55.4);
+            id(stage3_current).publish_state(6.0);
+
+            // Stage4
+            id(stage4_threshold).publish_state(55.5);
+            id(stage4_current).publish_state(2.5);
+
+            id(stage_reset_voltage).publish_state(53.5);
+
+            // === Force all stages inactive ===
+            id(stage1_active) = false;
+            id(stage2_active) = false;
+            id(stage3_active) = false;
+            id(stage4_active) = false;
+
+            // If you are using any "Stage4 forced off" logic, reset it too:
+            id(stage4_forced_off) = false;
+            id(stage4_elapsed_s) = 0;
+
+            // === Sync last_staged_current to user's current input ===
+            // so we don't immediately overwrite the user's chosen setting.
+            id(last_staged_current) = id(can_amp_input).state;
+
+            ESP_LOGI("STAGED_LOGIC", "Staged charge logic RESET to 16s LFP defaults; next interval will re-evaluate stages.");
+
+
+  - platform: template
+    name: "Soft Charge 15s LFP defaults"
+    id: restart_staged_charge_button2
+    icon: "mdi:upload"
+    on_press:
+      then:
+        - lambda: |-
+            // === 15s LFP "Preset" Defaults ===
+            // Stage1
+            id(stage1_threshold).publish_state(51.75);
+            id(stage1_current).publish_state(30);
+
+            // Stage2
+            id(stage2_threshold).publish_state(51.85);
+            id(stage2_current).publish_state(20);
+
+            // Stage3
+            id(stage3_threshold).publish_state(51.94);
+            id(stage3_current).publish_state(12);
+
+            // Stage4
+            id(stage4_threshold).publish_state(52.03);
+            id(stage4_current).publish_state(5);
+            
+            id(stage_reset_voltage).publish_state(50.16);
+
+            // === Force all stages inactive ===
+            id(stage1_active) = false;
+            id(stage2_active) = false;
+            id(stage3_active) = false;
+            id(stage4_active) = false;
+
+            // If you are using any "Stage4 forced off" logic, reset it too:
+            id(stage4_forced_off) = false;
+            id(stage4_elapsed_s) = 0;
+
+            // === Sync last_staged_current to user's current input ===
+            // so we don't immediately overwrite the user's chosen setting.
+            id(last_staged_current) = id(can_amp_input).state;
+
+            ESP_LOGI("STAGED_LOGIC", "Staged charge logic RESET to 15s LFP defaults; next interval will re-evaluate stages.");
+
+  - platform: template
+    name: "Soft Charge ⭳ Save"
+    icon: "mdi:content-save-outline"
+    on_press:
+      then:
+        - lambda: |-
+            float src_thr[4] = {
+              id(stage1_threshold).state,
+              id(stage2_threshold).state,
+              id(stage3_threshold).state,
+              id(stage4_threshold).state };
+
+            float src_cur[4] = {
+              id(stage1_current).state,
+              id(stage2_current).state,
+              id(stage3_current).state,
+              id(stage4_current).state };
+
+            for (int i = 0; i < 4; i++) {
+              id(custom_stage)[2*i]     = src_thr[i];
+              id(custom_stage)[2*i + 1] = src_cur[i];
+            }
+
+            /*** NEW: save Stage-reset voltage ***/
+            id(custom_stage)[8] = id(stage_reset_voltage).state;
+
+            ESP_LOGI("PRESET", "Custom settings SAVED");
+
+  - platform: template
+    name: "Soft Charge ⭱ Load"
+    icon: "mdi:upload"
+    on_press:
+      then:
+        - lambda: |-
+            auto &a = id(custom_stage);   // alias
+
+            id(stage1_threshold).publish_state(a[0]);
+            id(stage1_current).publish_state( a[1]);
+            id(stage2_threshold).publish_state(a[2]);
+            id(stage2_current).publish_state( a[3]);
+            id(stage3_threshold).publish_state(a[4]);
+            id(stage3_current).publish_state( a[5]);
+            id(stage4_threshold).publish_state(a[6]);
+            id(stage4_current).publish_state( a[7]);
+
+            /*** NEW: restore Stage-reset voltage ***/
+            id(stage_reset_voltage).publish_state(a[8]);
+
+            // Clear any active stages so logic re-evaluates cleanly
+            id(stage1_active) = id(stage2_active) =
+            id(stage3_active) = id(stage4_active) = false;
+
+            ESP_LOGI("PRESET", "Custom settings LOADED");

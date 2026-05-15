@@ -1,0 +1,446 @@
+number:
+
+  - platform: template
+    name: "Fan Minimum Speed"
+    id: can_fan_speed_input
+    min_value: 0
+    max_value: 100
+    step: 1
+    unit_of_measurement: "%"
+    optimistic: true
+    mode: SLIDER
+    restore_value: true
+    icon: "mdi:fan"
+    on_value:
+      then:
+        - delay: 0.01s  # Small delay to ensure the value is updated
+        - lambda: |-
+            float fan_value = id(can_fan_speed_input).state;
+            ESP_LOGI("custom", "Received fan speed: %.0f%%", fan_value);
+        - canbus.send:
+            use_extended_id: true
+            can_id: 0x108080FE
+            data: !lambda |-
+              std::vector<uint8_t> can_data(8, 0x00);
+              // Set register identifier for fan duty cycle
+              can_data[0] = 0x01;
+              can_data[1] = 0x14;
+              // Calculate the scaled fan duty cycle (fan_value * 256)
+              int scaled_value = (int)(id(can_fan_speed_input).state * 256);
+              // Insert the 16-bit scaled value in big-endian format at bytes 2 and 3
+              can_data[2] = (scaled_value >> 8) & 0xFF;  // High byte
+              can_data[3] = scaled_value & 0xFF;         // Low byte
+              // Bytes 4 to 7 remain 0x00
+              return can_data;
+
+  - platform: template
+    name: "10 Set Voltage Limit"
+    id: can_voltage_input
+    min_value: 49
+    max_value: 58
+    step: 0.1
+    unit_of_measurement: "V"
+    optimistic: true
+    mode: BOX
+    restore_value: true
+    icon: "mdi:sine-wave"
+    on_value:
+      then:
+        - delay: 0.01s
+        - lambda: |-
+            float voltage_value = id(can_voltage_input).state;
+            ESP_LOGI("custom", "Received voltage: %.1fV", voltage_value);
+        - canbus.send:
+            use_extended_id: true
+            can_id: 0x108080FE
+            data: !lambda |-
+              std::vector<uint8_t> can_data(8, 0x00);
+              can_data[0] = 0x01;  // Identifier byte
+              int scaled_value = (int)(id(can_voltage_input).state * id(voltage_scaling_factor));
+              can_data[6] = (scaled_value >> 8) & 0xFF;
+              can_data[7] = scaled_value & 0xFF;
+              return can_data;
+
+  - platform: template
+    name: "11 Set Fallback Voltage Limit"
+    id: fallback_voltage_input
+    min_value: 49
+    max_value: 58
+    step: 0.1
+    unit_of_measurement: "V"
+    optimistic: true
+    mode: BOX
+    restore_value: True
+    icon: "mdi:sine-wave"
+    on_value:
+      then:
+        - delay: 0.01s
+        - lambda: |-
+            float fallback_voltage_value = id(fallback_voltage_input).state;
+            ESP_LOGI("custom", "Fallback Voltage: %.1fV", fallback_voltage_value);
+        - canbus.send:
+            use_extended_id: true
+            can_id: 0x108080FE
+            data: !lambda |-
+              std::vector<uint8_t> can_data(8, 0x00);
+              can_data[0] = 0x01;
+              can_data[1] = 0x01;  // Fallback marker
+              int fallback_scaled_value = (int)(id(fallback_voltage_input).state * id(voltage_scaling_factor));
+              can_data[6] = (fallback_scaled_value >> 8) & 0xFF;
+              can_data[7] = fallback_scaled_value & 0xFF;
+              return can_data;
+
+  - platform: template
+    name: "14 Set AC Current Limit"
+    id: can_current_limit_input
+    min_value: 0
+    max_value: 21
+    step: 0.1
+    unit_of_measurement: "A"
+    optimistic: true
+    mode: BOX
+    restore_value: True
+    icon: "mdi:current-ac"
+    on_value:
+      then:
+        - delay: 0.01s
+        - lambda: |-
+            float current_value = id(can_current_limit_input).state;
+            float max_current = 10.0; // default
+            if (id(amp_scaling_factor) >= 18 && id(amp_scaling_factor) <= 22) {
+              max_current = 17.0;
+            } else if (id(amp_scaling_factor) >= 13 && id(amp_scaling_factor) <= 15) {
+              max_current = 21.0;
+            } else if (id(amp_scaling_factor) >= 25 && id(amp_scaling_factor) <= 35) {
+              max_current = 13.0;
+            }
+            if (current_value > max_current) {
+              ESP_LOGW("custom", "Entered Current %.1f exceeds model limit %.1f, resetting.", current_value, max_current);
+              id(can_current_limit_input).publish_state(max_current);
+              current_value = max_current;
+            }
+            if (current_value == 0) {
+              ESP_LOGI("custom", "AC Current Limit disabled.");
+            } else {
+              ESP_LOGI("custom", "AC Current Limit set to %.1fA.", current_value);
+            }
+        - canbus.send:
+            use_extended_id: true
+            can_id: 0x108080FE
+            data: !lambda |-
+              std::vector<uint8_t> can_data(8, 0x00);
+              int scaled_value = (int)(id(can_current_limit_input).state * id(voltage_scaling_factor));
+              can_data[0] = 0x01;
+              can_data[1] = 0x09;
+              can_data[3] = (id(can_current_limit_input).state > 0) ? 0x01 : 0x00; 
+              can_data[6] = (scaled_value >> 8) & 0xFF;
+              can_data[7] = scaled_value & 0xFF;
+              return can_data;
+
+  - platform: template
+    name: "12 Set DC Current Limit"
+    id: can_amp_input
+    min_value: 0
+    max_value: 75
+    step: 0.1
+    unit_of_measurement: "A"
+    optimistic: true
+    mode: BOX
+    restore_value: true
+    icon: "mdi:current-dc"
+    on_value:
+      then:
+        - delay: 0.01s
+        - lambda: |-
+            float amp_value = id(can_amp_input).state;
+            float max_amps = 75.0; 
+            if (id(amp_scaling_factor) >= 18 && id(amp_scaling_factor) <= 22) {
+              max_amps = 50.0;
+            } else if (id(amp_scaling_factor) >= 13 && id(amp_scaling_factor) <= 15) {
+              max_amps = 75;
+            } else if (id(amp_scaling_factor) >= 25 && id(amp_scaling_factor) <= 35) {
+              max_amps = 30.0;
+            }
+            if (amp_value > max_amps) {
+              ESP_LOGW("custom", "Entered Amp %.1f exceeds limit %.1f, resetting.", amp_value, max_amps);
+              id(can_amp_input).publish_state(max_amps);
+              amp_value = max_amps;
+            }
+            ESP_LOGI("custom", "DC Current Limit set to %.1fA.", amp_value);
+        - canbus.send:
+            use_extended_id: true
+            can_id: 0x108080FE
+            data: !lambda |-
+              std::vector<uint8_t> can_data(8, 0x00);
+              int scaled_value = (int)(id(can_amp_input).state * id(amp_scaling_factor));
+              can_data[0] = 0x01;
+              can_data[1] = 0x03;
+              can_data[6] = (scaled_value >> 8) & 0xFF;
+              can_data[7] = scaled_value & 0xFF;
+              return can_data;
+
+  - platform: template
+    name: "13 Set Fallback DC Current Limit"
+    id: fallback_amp_input
+    min_value: 0
+    max_value: 75
+    step: 0.1
+    unit_of_measurement: "A"
+    optimistic: true
+    mode: BOX
+    restore_value: true
+    icon: "mdi:current-dc"
+    on_value:
+      then:
+        - delay: 0.01s
+        - lambda: |-
+            float fallback_amp_value = id(fallback_amp_input).state;
+            float max_amps = 75.0;
+            if (id(amp_scaling_factor) >= 18 && id(amp_scaling_factor) <= 22) {
+              max_amps = 50.0;
+            } else if (id(amp_scaling_factor) >= 13 && id(amp_scaling_factor) <= 15) {
+              max_amps = 75;
+            } else if (id(amp_scaling_factor) >= 25 && id(amp_scaling_factor) <= 35) {
+              max_amps = 30.0;
+            }
+            if (fallback_amp_value > max_amps) {
+              ESP_LOGW("custom", "Fallback Amp %.1f exceeds limit %.1f, resetting.", fallback_amp_value, max_amps);
+              id(fallback_amp_input).publish_state(max_amps);
+              fallback_amp_value = max_amps;
+            }
+            ESP_LOGI("custom", "Fallback DC Current Limit set to %.1fA.", fallback_amp_value);
+        - canbus.send:
+            use_extended_id: true
+            can_id: 0x108080FE
+            data: !lambda |-
+              std::vector<uint8_t> can_data(8, 0x00);
+              int scaled_value = (int)(id(fallback_amp_input).state * id(amp_scaling_factor));
+              can_data[0] = 0x01;
+              can_data[1] = 0x04;
+              can_data[6] = (scaled_value >> 8) & 0xFF;
+              can_data[7] = scaled_value & 0xFF;
+              return can_data;
+
+  # ------------------- NEW CLOCK INPUTS -------------------
+  - platform: template
+    name: "Set Current Hour"
+    min_value: 0
+    max_value: 23
+    step: 1
+    mode: BOX
+    optimistic: true
+    restore_value: true
+    icon: "mdi:clock"
+    on_value:
+      then:
+        - delay: 0.01s
+        - lambda: |-
+            id(current_hour) = (int) x;
+
+  - platform: template
+    name: "Set Current Minute"
+    min_value: 0
+    max_value: 59
+    step: 1
+    mode: BOX
+    optimistic: true
+    restore_value: true
+    icon: "mdi:clock"
+    on_value:
+      then:
+        - delay: 0.01s
+        - lambda: |-
+            id(current_minute) = (int) x;
+
+  - platform: template
+    name: "Set ON Hour"
+    id: on_hour
+    min_value: 0
+    max_value: 23
+    step: 1
+    mode: BOX
+    optimistic: true
+    restore_value: true
+    icon: "mdi:timer-play"
+    on_value:
+      then:
+        - lambda: |-
+            id(g_show_schedule_update_log) = true;
+
+  - platform: template
+    name: "Set ON Minute"
+    id: on_minute
+    min_value: 0
+    max_value: 59
+    step: 1
+    mode: BOX
+    optimistic: true
+    restore_value: true
+    icon: "mdi:timer-play"
+    on_value:
+      then:
+        - lambda: |-
+            id(g_show_schedule_update_log) = true;
+
+  - platform: template
+    name: "Set OFF Hour"
+    id: off_hour
+    min_value: 0
+    max_value: 23
+    step: 1
+    mode: BOX
+    optimistic: true
+    restore_value: true
+    icon: "mdi:timer-off"
+    on_value:
+      then:
+        - lambda: |-
+            id(g_show_schedule_update_log) = true;
+
+  - platform: template
+    name: "Set OFF Minute"
+    id: off_minute
+    min_value: 0
+    max_value: 59
+    step: 1
+    mode: BOX
+    optimistic: true
+    restore_value: true
+    icon: "mdi:timer-off"
+    on_value:
+      then:
+        - lambda: |-
+            id(g_show_schedule_update_log) = true;
+
+  - platform: template          
+    name: "Stage reset voltage"
+    id: stage_reset_voltage
+    unit_of_measurement: "V"
+    min_value: 48.00          # pick limits that make sense for your pack
+    max_value: 58.00
+    mode: BOX
+    step: 0.01
+    icon: "mdi:restore"
+    optimistic: true
+    initial_value: 53.2
+# ================= STAGE 1
+
+  - platform: template
+    name: "Stage Threshold 1"
+    id: stage1_threshold
+    min_value: 45
+    max_value: 58
+    step: 0.01
+    unit_of_measurement: "V"
+    mode: BOX
+    restore_value: true
+    icon: "mdi:numeric-1-circle"
+    optimistic: true
+    initial_value: 55.2  # from Node-RED
+
+  - platform: template
+    name: "Stage Current 1"
+    id: stage1_current
+    min_value: 0
+    max_value: 75
+    step: 0.1
+    unit_of_measurement: "A"
+    mode: BOX
+    restore_value: true
+    icon: "mdi:numeric-1-circle-outline"
+    optimistic: true
+    initial_value: 31    # from Node-RED
+
+# ================= STAGE 2
+  - platform: template
+    name: "Stage Threshold 2"
+    id: stage2_threshold
+    min_value: 45
+    max_value: 58
+    step: 0.01
+    unit_of_measurement: "V"
+    mode: BOX
+    restore_value: true
+    icon: "mdi:numeric-2-circle"
+    optimistic: true
+    initial_value: 55.3
+
+  - platform: template
+    name: "Stage Current 2"
+    id: stage2_current
+    min_value: 0
+    max_value: 75
+    step: 0.1
+    unit_of_measurement: "A"
+    mode: BOX
+    restore_value: true
+    icon: "mdi:numeric-2-circle-outline"
+    optimistic: true
+    initial_value: 10
+
+# ================= STAGE 3
+  - platform: template
+    name: "Stage Threshold 3"
+    id: stage3_threshold
+    min_value: 45
+    max_value: 58
+    step: 0.01
+    unit_of_measurement: "V"
+    mode: BOX
+    restore_value: true
+    icon: "mdi:numeric-3-circle"
+    optimistic: true
+    initial_value: 55.4
+
+  - platform: template
+    name: "Stage Current 3"
+    id: stage3_current
+    min_value: 0
+    max_value: 75
+    step: 0.1
+    unit_of_measurement: "A"
+    mode: BOX
+    restore_value: true
+    icon: "mdi:numeric-3-circle-outline"
+    optimistic: true
+    initial_value: 6
+
+# ================= STAGE 4
+  - platform: template
+    name: "Stage Threshold 4 Balance"
+    id: stage4_threshold
+    min_value: 45
+    max_value: 58
+    step: 0.01
+    unit_of_measurement: "V"
+    mode: BOX
+    restore_value: true
+    icon: "mdi:numeric-4-circle"
+    optimistic: true
+    initial_value: 55.5
+
+  - platform: template
+    name: "Stage Current 4 Balance"
+    id: stage4_current
+    min_value: 0
+    max_value: 75
+    step: 0.1
+    unit_of_measurement: "A"
+    mode: BOX
+    restore_value: true
+    icon: "mdi:numeric-4-circle-outline"
+    optimistic: true
+    initial_value: 2.5
+
+  - platform: template
+    name: "Stage Time Balance"
+    id: stage4_duration
+    min_value: 1
+    max_value: 300
+    step: 1
+    unit_of_measurement: "min"
+    mode: BOX
+    restore_value: true
+    icon: "mdi:timer-play"
+    initial_value: 60
+    optimistic: true

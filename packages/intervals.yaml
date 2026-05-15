@@ -1,0 +1,298 @@
+interval:
+  # first CAN poll
+  - interval: 867ms
+    then:
+      - canbus.send:
+          use_extended_id: true
+          can_id: 0x108040FE
+          data: [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+
+  # same period, phase–shifted by 433 ms
+  - interval: 867ms
+    startup_delay: 433ms     # <─ one-time delay that establishes the offset
+    then:
+      - canbus.send:
+          use_extended_id: true
+          can_id: 0x108182FE
+          data: [0x01, 0x87, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+
+  - interval: 30s
+    then:
+      - canbus.send:
+          use_extended_id: true
+          can_id: 0x108180FE
+          data: !lambda |-
+            std::vector<uint8_t> can_data(8, 0x00);
+            can_data[0] = 0x01;
+            int scaled_value = (int)(id(can_voltage_input).state * id(voltage_scaling_factor));
+            can_data[6] = (scaled_value >> 8) & 0xFF;
+            can_data[7] = scaled_value & 0xFF;
+            return can_data;
+
+  - interval: 30s
+    then:
+      - canbus.send:
+          use_extended_id: true
+          can_id: 0x108180FE
+          data: !lambda |-
+            std::vector<uint8_t> can_data(8, 0x00);
+            can_data[0] = 0x01;
+            can_data[1] = 0x03;
+            int scaled_value = (int)(id(can_amp_input).state * id(amp_scaling_factor));
+            can_data[6] = (scaled_value >> 8) & 0xFF;
+            can_data[7] = scaled_value & 0xFF;
+            return can_data;
+
+  # ------------- NEW LOCAL CLOCK "TICK" -------------
+
+
+  - interval: 60s
+    then:
+      - lambda: |-
+          ///////////////////////////
+          // 1) Check if disabled
+          ///////////////////////////
+          bool disabled = false;
+          if (((int)id(on_hour).state == (int)id(off_hour).state) && ((int)id(on_minute).state == (int)id(off_minute).state)) {
+            disabled = true;
+            id(on_time_countdown) = 0;
+            id(off_time_countdown) = 0;
+          }
+          id(daily_schedule_disabled) = disabled;
+
+          // Only log when the disabled state changes
+          if (disabled != id(g_schedule_disabled_prev)) {
+            if (disabled) {
+              ESP_LOGI("CLOCK", "Daily ON/OFF times are the same => schedule disabled.");
+            } else {
+              ESP_LOGI("CLOCK", "Daily ON/OFF times set => schedule enabled.");
+            }
+            id(g_schedule_disabled_prev) = disabled;
+          }
+
+          ///////////////////////////
+          // 2) Increment the clock
+          ///////////////////////////
+          id(current_minute)++;
+          if (id(current_minute) >= 60) {
+            id(current_minute) = 0;
+            id(current_hour)++;
+            if (id(current_hour) >= 24) {
+              id(current_hour) = 0;
+            }
+          }
+
+          ///////////////////////////
+          // 3) Skip if disabled
+          ///////////////////////////
+          if (!disabled) {
+            // Calculate minutes to next ON
+            int now_total = id(current_hour)*60 + id(current_minute);
+            int on_total = ((int)id(on_hour).state)*60 + ((int)id(on_minute).state);
+            int on_delta = on_total - now_total;
+            if (on_delta < 0) {
+              on_delta += 24*60;
+            }
+            id(on_time_countdown) = on_delta;
+
+            // Calculate minutes to next OFF
+            int off_total = ((int)id(off_hour).state)*60 + ((int)id(off_minute).state);
+            int off_delta = off_total - now_total;
+            if (off_delta < 0) {
+              off_delta += 24*60;
+            }
+            id(off_time_countdown) = off_delta;
+
+            // Only log when the user changes ON/OFF times
+            if (id(g_show_schedule_update_log)) {
+              // Format ON time as HH:MM:SS
+              int on_hours = on_delta / 60;
+              int on_minutes = on_delta % 60;
+              int on_seconds = 0;
+              // Format OFF time as HH:MM:SS
+              int off_hours = off_delta / 60;
+              int off_minutes = off_delta % 60;
+              int off_seconds = 0;
+
+              ESP_LOGI("CLOCK",
+                "Time %02d:%02d => Next ON in %02d:%02d:%02d, Next OFF in %02d:%02d:%02d",
+                id(current_hour), id(current_minute),
+                on_hours, on_minutes, on_seconds,
+                off_hours, off_minutes, off_seconds
+              );
+              id(g_show_schedule_update_log) = false;
+            }
+
+            // Time ON
+            if ((id(current_hour) == (int)id(on_hour).state) && (id(current_minute) == (int)id(on_minute).state)) {
+              ESP_LOGI("CLOCK", "Daily schedule => sending CAN ON");
+              id(can_on_button).press();
+            }
+
+            // Time OFF
+            if (((int)id(off_hour).state >= 0) && ((int)id(off_minute).state >= 0)) {
+              if ((id(current_hour) == (int)id(off_hour).state) && (id(current_minute) == (int)id(off_minute).state)) {
+                ESP_LOGI("CLOCK", "Daily schedule => sending CAN OFF");
+                id(can_off_button).press();
+              }
+            }
+          }
+
+  # Every 60 seconds, add (Power * 1 minute) to the total
+  - interval: 60s
+    then:
+      - lambda: |-
+          // 1) Grab your real-time power from your chosen sensor (in Watts)
+          float power_w = id(dc_power_out_sensor).state;  // or use ac_power_in_sensor, etc.
+
+          // 2) Convert W to Wh over the last 60s:
+          //    Wh added = Power (W) * (time in hours)
+          //    Time in hours for 60s = 60/3600 = 0.0167 hours
+          float wh_increment = power_w * (60.0f / 3600.0f);
+
+          // 3) Accumulate
+          id(consumed_wh) += wh_increment;
+
+          // 4) Optional log for debugging
+          ESP_LOGD("WH_METER", "Added %.2f Wh. Total now: %.2f Wh",
+                   wh_increment, id(consumed_wh));
+                
+
+  ########################################################################
+  # Main logic loop – runs every 5 seconds
+  ########################################################################
+  - interval: 5s
+    then:
+      # 1) Run staged-charging logic only when Soft-Charge is ENABLED
+      - if:
+          condition:
+            lambda: 'return id(soft_charge_enable).state;'
+          then:
+            ##################################################################
+            # 2) Stage activation / deactivation, global reset & timers
+            ##################################################################
+            - lambda: |-
+                const float vbat = id(output_voltage_sensor).state;
+
+                // --- Global reset: one slider ends every stage -------------
+                if (vbat < id(stage_reset_voltage).state) {
+                  id(stage1_active) = false;
+                  id(stage2_active) = false;
+                  id(stage3_active) = false;
+                  id(stage4_active) = false;
+                  id(stage4_elapsed_s) = 0;        // clear Stage-4 timer too
+                }
+
+                // --- Stage 1 ------------------------------------------------
+                if (!id(stage1_active) && vbat >= id(stage1_threshold).state)
+                  id(stage1_active) = true;
+
+                // --- Stage 2 ------------------------------------------------
+                if (!id(stage2_active) && vbat >= id(stage2_threshold).state)
+                  id(stage2_active) = true;
+
+                // --- Stage 3 ------------------------------------------------
+                if (!id(stage3_active) && vbat >= id(stage3_threshold).state)
+                  id(stage3_active) = true;
+
+                // --- Stage 4 (suppressed if forced-off) ---------------------
+                if (!id(stage4_forced_off)) {
+                  if (!id(stage4_active) && vbat >= id(stage4_threshold).state)
+                    id(stage4_active) = true;
+                }
+
+                // Track whether *any* stage is active
+                const bool any_stage_active =
+                    (id(stage1_active) || id(stage2_active) ||
+                     id(stage3_active) || id(stage4_active));
+
+                // Transition logging & amp restore
+                if (!id(prev_any_stage_active) && any_stage_active) {
+                  id(pre_stage_amp) = id(can_amp_input).state;
+                  ESP_LOGI("STAGED_DROP",
+                           "Entering staged charge → storing %.1f A",
+                           id(pre_stage_amp));
+                } else if (id(prev_any_stage_active) && !any_stage_active) {
+                  ESP_LOGI("STAGED_DROP",
+                           "No stages active → restoring %.1f A",
+                           id(pre_stage_amp));
+                  id(can_amp_input).publish_state(id(pre_stage_amp));
+                  id(last_staged_current) = id(pre_stage_amp);
+                }
+                id(prev_any_stage_active) = any_stage_active;
+
+                // --- Stage-4 elapsed timer (5 s ticks) ----------------------
+                if (id(stage4_active) && !id(stage4_forced_off))
+                  id(stage4_elapsed_s) += 5;
+                else
+                  id(stage4_elapsed_s) = 0;
+
+            ##################################################################
+            # 3) Time-out Stage-4 if it exceeds its duration
+            ##################################################################
+            - if:
+                condition:
+                  lambda: |-
+                    int limit_s =
+                        (int)(id(stage4_duration).state * 60);  // min → s
+                    return (id(stage4_active) && !id(stage4_forced_off) &&
+                            (id(stage4_elapsed_s) >= limit_s));
+                then:
+                  - lambda: |-
+                      ESP_LOGI("STAGED_DROP",
+                               "Stage-4 timed-out (%.0f min) → sending OFF",
+                               id(stage4_duration).state);
+                  - canbus.send:
+                      use_extended_id: true
+                      can_id: 0x108080FE
+                      data: [0x01, 0x32, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00]
+                  - lambda: |-
+                      id(stage4_active)     = false;
+                      id(stage4_forced_off) = true;
+
+            ##################################################################
+            # 4) Compute the commanded charging current
+            ##################################################################
+            - lambda: |-
+                bool any_active = (id(stage1_active) || id(stage2_active) ||
+                                   id(stage3_active) || id(stage4_active));
+                float commanded = id(can_amp_input).state;  // default = user
+
+                if (any_active) {
+                  if (id(stage1_active)) commanded = id(stage1_current).state;
+                  if (id(stage2_active)) commanded = id(stage2_current).state;
+                  if (id(stage3_active)) commanded = id(stage3_current).state;
+                  if (id(stage4_active)) commanded = id(stage4_current).state;
+                }
+
+                if (fabsf(commanded - id(last_staged_current)) >= 0.5f) {
+                  id(last_staged_current) = commanded;
+                  ESP_LOGI("STAGED_DROP",
+                           "VBAT=%.2f V ⇒ current %.1f A",
+                           id(output_voltage_sensor).state, commanded);
+                }
+
+            ##################################################################
+            # 5) Push a CAN frame if the set-point changed ≥ 0.5 A
+            ##################################################################
+            - if:
+                condition:
+                  lambda: |-
+                    return fabsf(id(last_staged_current) -
+                                 id(can_amp_input).state) >= 0.5f;
+                then:
+                  - lambda: |-
+                      id(can_amp_input).publish_state(id(last_staged_current));
+                  - canbus.send:
+                      can_id: 0x108080FE
+                      use_extended_id: true
+                      data: !lambda |-
+                        const uint16_t scaled =
+                            (uint16_t)(id(last_staged_current) *
+                                       id(amp_scaling_factor));
+                        static std::vector<uint8_t> frame{
+                            0x01, 0x03, 0x00, 0x00,
+                            0x00, 0x00, 0x00, 0x00};
+                        frame[6] = (scaled >> 8) & 0xFF;  // MSB
+                        frame[7] =  scaled       & 0xFF;  // LSB
+                        return frame;

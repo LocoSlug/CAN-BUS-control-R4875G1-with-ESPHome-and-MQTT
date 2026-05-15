@@ -1,0 +1,53 @@
+esphome:
+  name: "r48xx-off-grid"
+  friendly_name: "R48xx-off-grid"
+
+  on_boot:
+
+    - priority: 600
+      then:
+        - delay: 15s
+        - script.execute: setup_sequence
+
+    - priority: 800
+      then:
+        - delay: 3s
+        - text.set: { id: t_broker, value: !lambda 'return id(g_broker).c_str();' }
+        - text.set: { id: t_user,   value: !lambda 'return id(g_user).c_str();' }
+        - text.set: { id: t_pass,   value: !lambda 'return id(g_pass).c_str();' }
+        - text.set: { id: t_port,   value: !lambda 'return std::to_string(id(g_port));' }
+
+    - priority: 900
+      then:
+        - delay: 6s
+        - wait_until:             # make sure Wi-Fi is ready first
+            condition: wifi.connected
+            timeout: 20s
+        - if:
+            condition:
+              lambda: |-
+                return !id(g_broker).empty()      &&
+                       id(g_port) > 0;
+            then:
+              - logger.log:
+                  tag: "config"
+                  level: INFO
+                  format: "All MQTT credentials look good – auto-connecting…"
+              - script.execute: mqtt_reconnect
+            else:
+              - logger.log:
+                  tag: "config"
+                  level: INFO
+                  format: "MQTT credentials incomplete – skipping auto-connect"
+
+packages:
+  core: !include packages/core.yaml
+  globals: !include packages/globals.yaml
+  mqtt: !include packages/mqtt.yaml
+  switches: !include packages/switches.yaml
+  scripts: !include packages/scripts.yaml
+  canbus: !include packages/canbus.yaml
+  sensors: !include packages/sensors.yaml
+  numbers: !include packages/numbers.yaml
+  buttons: !include packages/buttons.yaml
+  intervals: !include packages/intervals.yaml

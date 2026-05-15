@@ -1,0 +1,149 @@
+# ────────────────────── MQTT skeleton (always disabled at boot) ─────────────
+mqtt:
+  id: mqtt_client
+  broker: ""                  # placeholder – updated at run-time
+  enable_on_boot: false
+  reboot_timeout: 0s          # never auto-reboot; we handle errors ourselves
+
+  # ────────────── MQTT connected ──────────────
+  on_connect:
+    then:
+      - text_sensor.template.publish:
+          id: ts_mqtt_status
+          state: "🟢 Connected"
+      - lambda: |-
+          id(g_mqtt_failures) = 0;         // reset the counter
+      - logger.log:
+          tag: "config"
+          level: INFO
+          format: "MQTT connected – counter reset, status → green"
+
+  # ────────────── MQTT disconnected / failed connect ──────────────
+  on_disconnect:
+    then:
+      # 1️⃣ update status & bump failure counter
+      - text_sensor.template.publish:
+          id: ts_mqtt_status
+          state: "🔴 Disconnected"
+      - lambda: |-
+          id(g_mqtt_failures)++;
+      - logger.log:
+          tag: "mqtt"
+          level: WARN
+          format: "MQTT disconnect #%d"
+          args: [ 'id(g_mqtt_failures)' ]
+
+      # 2️⃣ after 3 failures, disable MQTT and retry in 300s
+      - if:
+          condition:
+            lambda: 'return id(g_mqtt_failures) >= 3;'
+          then:
+            - logger.log:
+                tag: "mqtt"
+                level: ERROR
+                format: "3 failures reached – disabling MQTT, will retry in 300 s"
+
+            - text_sensor.template.publish:
+                id: ts_mqtt_status
+                state: "🟡 Retrying in 300s"
+
+            # stop further retries temporarily
+            - mqtt.disable:
+
+            # wait 300 seconds before trying again
+            - delay: 300s
+
+            - logger.log:
+                tag: "mqtt"
+                level: INFO
+                format: "Retrying MQTT connection…"
+
+            # reset failure counter and re-enable
+            - lambda: |-
+                id(g_mqtt_failures) = 0;
+
+            - text_sensor.template.publish:
+                id: ts_mqtt_status
+                state: "🟡 Reconnecting…"
+
+            - mqtt.enable:
+
+# ───────────────────────── helpers the user edits in the UI ─────────────────
+text:
+  - platform: template
+    id: t_broker
+    name: "MQTT Broker IP address"
+    mode: text
+    icon: mdi:lan
+    max_length: 16
+    restore_value: true
+    set_action:
+      then:
+        - lambda: id(g_broker) = x;
+        - logger.log:
+            tag: "config"
+            level: INFO
+            format: "MQTT broker entered: %s"
+            args: [ 'id(g_broker).c_str()' ]
+
+  - platform: template
+    id: t_user
+    name: "MQTT User (optional)"
+    mode: text
+    icon: mdi:lan
+    max_length: 16
+    restore_value: true
+    set_action:
+      then:
+        - lambda: id(g_user) = x;
+        - logger.log:
+            tag: "config"
+            level: INFO
+            format: "MQTT username entered: %s"
+            args: [ 'id(g_user).c_str()' ]
+
+  - platform: template
+    id: t_pass
+    name: "MQTT Password (optional)"
+    mode: password
+    icon: mdi:lan
+    max_length: 16
+    restore_value: true
+    internal: False
+    set_action:
+      then:
+        - lambda: id(g_pass) = x;
+        - logger.log:
+            tag: "config"
+            level: INFO
+            format: "MQTT password entered (len %d)"
+            args: [ 'id(g_pass).size()' ]
+
+  - platform: template
+    id: t_port
+    name: "MQTT Port (1883 if empty)"
+    mode: text
+    icon: mdi:lan
+    max_length: 8
+    restore_value: true
+    set_action:
+      then:
+        # 🆕 interpret an empty string as "revert to the default (1883)"
+        - lambda: |-
+            if (x.empty()) {                         // user cleared the field
+              id(g_port) = 1883;                     // …so fall back to the standard port
+              ESP_LOGI("config",
+                       "MQTT port cleared – reverting to default 1883");
+            } else {
+              int port = atoi(x.c_str());
+              if (port > 0 && port <= 65535) {       // valid numeric entry
+                id(g_port) = port;
+                ESP_LOGI("config",
+                         "MQTT port entered: %d",
+                         port);
+              } else {                               // not a number or out of range
+                ESP_LOGW("config",
+                         "Invalid MQTT port "%s" – keeping previous value (%d)",
+                         x.c_str(), id(g_port));
+              }
+            }
