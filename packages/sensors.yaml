@@ -588,8 +588,22 @@ sensor:
     update_interval: 30s
 
   - platform: template
-    name: "FAN RPM"
-    id: rpm_sensor
+    name: "FAN RPM Board-1"
+    id: rpm_sensor1
+    unit_of_measurement: "RPM"
+    accuracy_decimals: 0
+    icon: "mdi:fan"
+
+  - platform: template
+    name: "FAN RPM Board-2"
+    id: rpm_sensor2
+    unit_of_measurement: "RPM"
+    accuracy_decimals: 0
+    icon: "mdi:fan"
+
+  - platform: template
+    name: "FAN RPM Board-3"
+    id: rpm_sensor3
     unit_of_measurement: "RPM"
     accuracy_decimals: 0
     icon: "mdi:fan"
