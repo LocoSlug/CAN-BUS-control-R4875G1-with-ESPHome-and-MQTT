@@ -1,7 +1,7 @@
 number:
 
   - platform: template
-    name: "Fan Minimum Speed"
+    name: "Fan Minimum Speed Board-All"
     id: can_fan_speed_input
     min_value: 0
     max_value: 100

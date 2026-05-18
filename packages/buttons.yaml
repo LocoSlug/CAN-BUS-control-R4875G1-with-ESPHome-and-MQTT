@@ -22,7 +22,7 @@ button:
       - button.press: sys_restart   # ← press the hidden restart button
 
   - platform: template
-    name: "001 CAN ON Button"
+    name: "001 CAN ON Board-All"
     icon: "mdi:power"
     id: can_on_button
     on_press:
@@ -35,7 +35,46 @@ button:
             data: [0x01, 0x32, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
 
   - platform: template
-    name: "002 CAN OFF Button"
+    name: "001 CAN ON Board-1"
+    icon: "mdi:power"
+    id: can_on_button1
+    on_press:
+      then:
+        - lambda: |-
+            ESP_LOGI("custom", "CAN ON Button Board-2 pressed => sending ON message...");
+        - canbus.send:
+            use_extended_id: true
+            can_id: 0x108180FE
+            data: [0x01, 0x32, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+
+  - platform: template
+    name: "001 CAN ON Board-2"
+    icon: "mdi:power"
+    id: can_on_button2
+    on_press:
+      then:
+        - lambda: |-
+            ESP_LOGI("custom", "CAN ON Button Board-2 pressed => sending ON message...");
+        - canbus.send:
+            use_extended_id: true
+            can_id: 0x108280FE
+            data: [0x01, 0x32, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+
+  - platform: template
+    name: "001 CAN ON Board-3"
+    icon: "mdi:power"
+    id: can_on_button3
+    on_press:
+      then:
+        - lambda: |-
+            ESP_LOGI("custom", "CAN ON Button Board-3 pressed => sending ON message...");
+        - canbus.send:
+            use_extended_id: true
+            can_id: 0x108380FE
+            data: [0x01, 0x32, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+
+  - platform: template
+    name: "002 CAN OFF Board-All"
     icon: "mdi:power"
     id: can_off_button
     on_press:
@@ -45,6 +84,45 @@ button:
         - canbus.send:
             use_extended_id: true
             can_id: 0x108080FE
+            data: [0x01, 0x32, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00]
+
+  - platform: template
+    name: "002 CAN OFF Board-1"
+    icon: "mdi:power"
+    id: can_off_button1
+    on_press:
+      then:
+        - lambda: |-
+            ESP_LOGI("custom", "CAN OFF Button Board-2 pressed => sending OFF message...");
+        - canbus.send:
+            use_extended_id: true
+            can_id: 0x108180FE
+            data: [0x01, 0x32, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00]
+
+  - platform: template
+    name: "002 CAN OFF Board-2"
+    icon: "mdi:power"
+    id: can_off_button2
+    on_press:
+      then:
+        - lambda: |-
+            ESP_LOGI("custom", "CAN OFF Button Board-2 pressed => sending OFF message...");
+        - canbus.send:
+            use_extended_id: true
+            can_id: 0x108280FE
+            data: [0x01, 0x32, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00]
+
+  - platform: template
+    name: "002 CAN OFF Board-3"
+    icon: "mdi:power"
+    id: can_off_button3
+    on_press:
+      then:
+        - lambda: |-
+            ESP_LOGI("custom", "CAN OFF Button Board-3 pressed => sending OFF message...");
+        - canbus.send:
+            use_extended_id: true
+            can_id: 0x108380FE
             data: [0x01, 0x32, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00]
 
 
@@ -67,7 +145,7 @@ button:
 
 # Define a button component for setting the fan to full speed
   - platform: template
-    name: "Fan Full Speed Button"
+    name: "Fan Full Speed Board-All"
     icon: "mdi:fan"
     on_press:
       then:
@@ -78,7 +156,7 @@ button:
 
 # Define a button component for setting the fan to auto mode
   - platform: template
-    name: "Fan Auto Mode Button"
+    name: "Fan Auto Mode Board-All"
     icon: "mdi:fan"
     on_press:
       then:
@@ -86,6 +164,67 @@ button:
             use_extended_id: true
             can_id: 0x108080FE
             data: [0x01, 0x34, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+
+  - platform: template
+    name: "Fan Auto Mode Board-1"
+    icon: "mdi:fan"
+    on_press:
+      then:
+        - canbus.send:
+            use_extended_id: true
+            can_id: 0x108180FE
+            data: [0x01, 0x34, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+
+  - platform: template
+    name: "Fan Auto Mode Board-2"
+    icon: "mdi:fan"
+    on_press:
+      then:
+        - canbus.send:
+            use_extended_id: true
+            can_id: 0x108280FE
+            data: [0x01, 0x34, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+
+# Define a button component for setting the fan to auto mode for board 3
+  - platform: template
+    name: "Fan Auto Mode Board-3"
+    icon: "mdi:fan"
+    on_press:
+      then:
+        - canbus.send:
+            use_extended_id: true
+            can_id: 0x108380FE
+            data: [0x01, 0x34, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+
+  - platform: template
+    name: "Fan Full Speed Board-1"
+    icon: "mdi:fan"
+    on_press:
+      then:
+        - canbus.send:
+            use_extended_id: true
+            can_id: 0x108180FE
+            data: [0x01, 0x34, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00]
+
+  - platform: template
+    name: "Fan Full Speed Board-2"
+    icon: "mdi:fan"
+    on_press:
+      then:
+        - canbus.send:
+            use_extended_id: true
+            can_id: 0x108280FE
+            data: [0x01, 0x34, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00]
+
+  - platform: template
+    name: "Fan Full Speed Board-3"
+    icon: "mdi:fan"
+    on_press:
+      then:
+        - canbus.send:
+            use_extended_id: true
+            can_id: 0x108380FE
+            data: [0x01, 0x34, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00]
 
   - platform: template
     name: "Soft Charge 16s LFP defaults"

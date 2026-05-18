@@ -44,13 +44,43 @@ globals:
     type: bool
     initial_value: "false"
 
+  - id: max_current_found_board_2
+    type: bool
+    restore_value: no
+    initial_value: "false"
+
+  - id: max_current_found_board_3
+    type: bool
+    restore_value: no
+    initial_value: "false"
+
   - id: search_counter_board_1
+    type: int
+    restore_value: no
+    initial_value: "0"
+
+  - id: search_counter_board_2
+    type: int
+    restore_value: no
+    initial_value: "0"
+
+  - id: search_counter_board_3
     type: int
     restore_value: no
     initial_value: "0"
 
   - id: data_found_board_1
     type: bool
+    initial_value: "false"
+
+  - id: data_found_board_2
+    type: bool
+    restore_value: no
+    initial_value: "false"
+
+  - id: data_found_board_3
+    type: bool
+    restore_value: no
     initial_value: "false"
 
   - id: daily_schedule_disabled
@@ -69,7 +99,27 @@ globals:
     restore_value: no
     initial_value: '0'
 
+  - id: frame_counter_bp2
+    type: int
+    restore_value: no
+    initial_value: '0'
+
+  - id: frame_counter_bp3
+    type: int
+    restore_value: no
+    initial_value: '0'
+
   - id: frame_counter_msg_start1
+    type: int
+    restore_value: no
+    initial_value: '0'
+
+  - id: frame_counter_msg_start2
+    type: int
+    restore_value: no
+    initial_value: '0'
+
+  - id: frame_counter_msg_start3
     type: int
     restore_value: no
     initial_value: '0'
@@ -83,8 +133,38 @@ globals:
     type: std::string
     initial_value: '""'
 
+  - id: board_properties1
+    type: std::string
+    restore_value: no
+    initial_value: '""'
+
+  - id: board_properties2
+    type: std::string
+    restore_value: no
+    initial_value: '""'
+
+  - id: board_properties3
+    type: std::string
+    restore_value: no
+    initial_value: '""'
+
   - id: board_properties_complete
     type: bool
+    initial_value: "false"
+
+  - id: board_properties_complete1
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+
+  - id: board_properties_complete2
+    type: bool
+    restore_value: no
+    initial_value: "false"
+
+  - id: board_properties_complete3
+    type: bool
+    restore_value: no
     initial_value: "false"
 
   - id: barcode_found

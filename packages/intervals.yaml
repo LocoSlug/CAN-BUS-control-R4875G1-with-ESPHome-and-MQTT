@@ -16,6 +16,24 @@ interval:
           can_id: 0x108182FE
           data: [0x01, 0x87, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
 
+  # polling for board 2 data
+  - interval: 867ms
+    startup_delay: 650ms     # <─ phase-shifted further
+    then:
+      - canbus.send:
+          use_extended_id: true
+          can_id: 0x108240FE
+          data: [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+
+  # polling for board 3 data
+  - interval: 867ms
+    startup_delay: 780ms     # <─ phase-shifted further
+    then:
+      - canbus.send:
+          use_extended_id: true
+          can_id: 0x108340FE
+          data: [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+
   - interval: 30s
     then:
       - canbus.send:

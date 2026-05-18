@@ -1,6 +1,6 @@
 esphome:
-  name: "r48xx-off-grid"
-  friendly_name: "R48xx-off-grid"
+  name: "r48xx-3-rectifier"
+  friendly_name: "R48xx-3-rectifier"
 
   on_boot:
 
@@ -39,6 +39,23 @@ esphome:
                   tag: "config"
                   level: INFO
                   format: "MQTT credentials incomplete – skipping auto-connect"
+substitutions:  
+  # Control MQTT discovery
+  mqtt_discovery: "False"
+  mqtt_discover_ip: "False"
+  mqtt_discovery_retain: "False"
+
+  wifi_domain: ".local"
+
+# Uncomment api: block if you are using Home Assistant
+#######
+api:
+ encryption:
+   key: ""
+
+ota:
+  - platform: esphome
+    password: ""
 
 packages:
   core: !include packages/core.yaml

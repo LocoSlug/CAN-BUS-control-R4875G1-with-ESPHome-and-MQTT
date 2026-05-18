@@ -54,40 +54,170 @@ script:
 
 
 
-  - id: setup_sequence
+  - id: detect_board_1_properties
     mode: single
     then:
-      # Detect Data Board-1
-      - script.execute: detect_data_board_1
-      - delay: 1s
-
-  - id: detect_data_board_1
-    then:
       - lambda: |-
-          id(max_current_found_board_1) = false; // Reset the flag before starting
-          id(search_counter_board_1) = 0;        // Initialize a fail-safe counter
+          id(board_properties_complete1) = false; // Reset the completion flag before starting
+          id(frame_counter_bp1) = 0; // Reset the frame counter
       - while:
           condition:
             lambda: |-
-              // Continue while board_1 not found and counter < 10
-              return !id(max_current_found_board_1) && id(search_counter_board_1) < 10;
+              return !id(board_properties_complete1) && id(frame_counter_bp1) < 3;
           then:
-            - canbus.send:
-                can_id: 0x108150fe
-                use_extended_id: true
-                data: [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
-            - delay: 1s
             - canbus.send:
                 can_id: 0x1081D2FE
                 use_extended_id: true
                 data: [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
             - delay: 1s
             - lambda: |-
-                id(search_counter_board_1) += 1; // Increment the fail-safe counter
-      - delay: 1s
+                id(frame_counter_bp1) += 1; // Increment the frame counter
+                ESP_LOGI("board_properties", "Frame Counter: %d", id(frame_counter_bp1));
       - lambda: |-
-          if (id(search_counter_board_1) >= 10) {
-            ESP_LOGW("canbus", "Fail-safe triggered: Loop stopped after 10 attempts.");
+          if (id(board_properties_complete1)) {
+            ESP_LOGI("board_properties", "Board properties detected successfully.");
+          } else {
+            ESP_LOGW("board_properties1", "Fail-safe triggered: Loop stopped after 3 attempts.");
+          }
+        
+  - id: detect_board_2_properties
+    mode: single
+    then:
+      - lambda: |-
+          id(board_properties_complete2) = false; // Reset the completion flag before starting
+          id(frame_counter_bp2) = 0; // Reset the frame counter
+      - while:
+          condition:
+            lambda: |-
+              return !id(board_properties_complete2) && id(frame_counter_bp2) < 3;
+          then:
+            - canbus.send:
+                can_id: 0x1082D2FE
+                use_extended_id: true
+                data: [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+            - delay: 1s
+            - lambda: |-
+                id(frame_counter_bp2) += 1; // Increment the frame counter
+                ESP_LOGI("board_properties2", "Frame Counter: %d", id(frame_counter_bp2));
+      - lambda: |-
+          if (id(board_properties_complete2)) {
+            ESP_LOGI("board_properties2", "Board properties detected successfully.");
+          } else {
+            ESP_LOGW("board_properties2", "Fail-safe triggered: Loop stopped after 3 attempts.");
+          }
+
+  - id: detect_board_3_properties
+    mode: single
+    then:
+      - lambda: |-
+          id(board_properties_complete3) = false; // Reset the completion flag before starting
+          id(frame_counter_bp3) = 0; // Reset the frame counter
+      - while:
+          condition:
+            lambda: |-
+              return !id(board_properties_complete3) && id(frame_counter_bp3) < 3;
+          then:
+            - canbus.send:
+                can_id: 0x1083D2FE
+                use_extended_id: true
+                data: [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+            - delay: 1s
+            - lambda: |-
+                id(frame_counter_bp3) += 1; // Increment the frame counter
+                ESP_LOGI("board_properties3", "Frame Counter: %d", id(frame_counter_bp3));
+      - lambda: |-
+          if (id(board_properties_complete3)) {
+            ESP_LOGI("board_properties3", "Board properties detected successfully.");
+          } else {
+            ESP_LOGW("board_properties3", "Fail-safe triggered: Loop stopped after 3 attempts.");
+          }
+
+  - id: setup_sequence
+    mode: single
+    then:
+      - script.execute: detect_board_1_properties
+      - delay: 5s
+      - script.execute: detect_board_2_properties
+      - delay: 5s
+      - script.execute: detect_board_3_properties
+      - delay: 5s      
+      # Detect Data Board-1
+      - script.execute: detect_data_board_1
+      - delay: 20s
+      # Detect Data Board-2
+      - script.execute: detect_data_board_2
+      - delay: 20s
+      # Detect Data Board-3
+      - script.execute: detect_data_board_3
+      - delay: 20s
+
+  - id: detect_data_board_1
+    then:
+      - lambda: |-
+          id(max_current_found_board_1) = false; // Reset the flag before starting
+          id(data_found_board_1) = false; // Reset the flag before starting
+          id(search_counter_board_1) = 0; // Initialize a fail-safe counter
+      - while:
+          condition:
+            lambda: |-
+              return !(id(max_current_found_board_1) && id(data_found_board_1)) && id(search_counter_board_1) < 10;
+          then:
+            - canbus.send:
+                can_id: 0x108150fe
+                use_extended_id: true
+                data: [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+            - delay: 1s
+            - lambda: |-
+                id(search_counter_board_1) += 1; // Increment the fail-safe counter
+      - lambda: |-
+          if (id(search_counter_board_1) >= 20) {
+            ESP_LOGW("canbus", "Fail-safe triggered: Loop stopped after 20 attempts.");
+          }
+
+  - id: detect_data_board_2
+    then:
+      - lambda: |-
+          id(max_current_found_board_2) = false; // Reset the flag before starting
+          id(data_found_board_2) = false; // Reset the flag before starting
+          id(search_counter_board_2) = 0; // Initialize a fail-safe counter
+      - while:
+          condition:
+            lambda: |-
+              return !(id(max_current_found_board_2) && id(data_found_board_2)) && id(search_counter_board_2) < 10;
+          then:
+            - canbus.send:
+                can_id: 0x108250fe
+                use_extended_id: true
+                data: [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+            - delay: 1s
+            - lambda: |-
+                id(search_counter_board_2) += 1; // Increment the fail-safe counter
+      - lambda: |-
+          if (id(search_counter_board_2) >= 20) {
+            ESP_LOGW("canbus", "Fail-safe triggered: Loop stopped after 20 attempts.");
+          }
+
+  - id: detect_data_board_3
+    then:
+      - lambda: |-
+          id(max_current_found_board_3) = false; // Reset the flag before starting
+          id(data_found_board_3) = false; // Reset the flag before starting
+          id(search_counter_board_3) = 0; // Initialize a fail-safe counter
+      - while:
+          condition:
+            lambda: |-
+              return !(id(max_current_found_board_3) && id(data_found_board_3)) && id(search_counter_board_3) < 10;
+          then:
+            - canbus.send:
+                can_id: 0x108350fe
+                use_extended_id: true
+                data: [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+            - delay: 1s
+            - lambda: |-
+                id(search_counter_board_3) += 1; // Increment the fail-safe counter
+      - lambda: |-
+          if (id(search_counter_board_3) >= 20) {
+            ESP_LOGW("canbus", "Fail-safe triggered: Loop stopped after 20 attempts.");
           }
 
   - id: soft_charge_reset

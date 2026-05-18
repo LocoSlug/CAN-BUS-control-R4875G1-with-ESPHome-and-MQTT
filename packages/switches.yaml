@@ -9,3 +9,17 @@ switch:
       - script.execute: soft_charge_reset
     turn_off_action:
       - script.execute: soft_charge_reset
+
+  - platform: gpio
+    id: waveshare_relay
+    pin:
+      number: GPIO47
+      mode: output
+      inverted: false          # ← Most Waveshare industrial relays are active-low (GPIO LOW = relay ON)
+    name: "EVSE Relay1 R4875G"
+    icon: "mdi:electric-switch"
+    restore_mode: RESTORE_DEFAULT_OFF   # Safe default — relay stays OFF after reboot/power loss
+    on_turn_on:
+      - logger.log: "Waveshare relay turned ON"
+    on_turn_off:
+      - logger.log: "Waveshare relay turned OFF"

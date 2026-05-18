@@ -4,6 +4,11 @@ mqtt:
   broker: ""                  # placeholder – updated at run-time
   enable_on_boot: false
   reboot_timeout: 0s          # never auto-reboot; we handle errors ourselves
+  discovery: ${mqtt_discovery}
+  discover_ip: ${mqtt_discover_ip}
+  discovery_retain: ${mqtt_discovery_retain}
+
+
 
   # ────────────── MQTT connected ──────────────
   on_connect:
@@ -143,7 +148,7 @@ text:
                          port);
               } else {                               // not a number or out of range
                 ESP_LOGW("config",
-                         "Invalid MQTT port "%s" – keeping previous value (%d)",
+                         "Invalid MQTT port %s – keeping previous value (%d)",
                          x.c_str(), id(g_port));
               }
             }
